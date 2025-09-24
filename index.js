@@ -17,6 +17,31 @@ resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
 //////////////////////////////////////////////////////
+// FUNVTION LIBRARY
+//////////////////////////////////////////////////////
+function circleCollidesWithRectangle({ circle, rectangle, steps = 5 }) {
+    for (let i = 1; i <= steps; i++) {
+        const nextX = circle.position.x + circle.velocity.x * i;
+        const nextY = circle.position.y + circle.velocity.y * i;
+
+        const closestX = Math.max(rectangle.position.x,
+            Math.min(nextX, rectangle.position.x + rectangle.width));
+        const closestY = Math.max(rectangle.position.y,
+            Math.min(nextY, rectangle.position.y + rectangle.height));
+
+        const dx = nextX - closestX;
+        const dy = nextY - closestY;
+
+        if ((dx * dx + dy * dy) <= (circle.radius * circle.radius)) {
+            return true; 
+        }
+    }
+    return false;
+}
+
+
+
+//////////////////////////////////////////////////////
 // GAME OBJECTS
 //////////////////////////////////////////////////////
 
@@ -36,11 +61,12 @@ class Boundary {
 }
 
 class Player {
-    constructor({ position, velocity }) {
+    constructor({ position }) {
         this.position = position;
-        this.speed = 3;
-        this.radius = 10;
+        this.speed = 2;
+        this.radius = 15;
         this.direction = null;
+        this.desiredDirection = null;
     }
 
     draw() {
@@ -51,11 +77,65 @@ class Player {
         ctx.closePath();
     }
 
-    update() {
-        if (this.direction === "up") this.position.y -= this.speed;
-        if (this.direction === "down") this.position.y += this.speed;
-        if (this.direction === "left") this.position.x -= this.speed;
-        if (this.direction === "right") this.position.x += this.speed;
+    isAtTileCenter() {
+        const tolerance = 2;
+        return (
+            Math.abs(this.position.x % Boundary.width - Boundary.width / 2) < tolerance &&
+            Math.abs(this.position.y % Boundary.height - Boundary.height / 2) < tolerance
+        );
+    }
+
+    willCollide(boundaries, dir) {
+        let velocity = { x: 0, y: 0 };
+        if (dir === "up") velocity.y = -this.speed;
+        if (dir === "down") velocity.y = this.speed;
+        if (dir === "left") velocity.x = -this.speed;
+        if (dir === "right") velocity.x = this.speed;
+
+        return boundaries.some(boundary =>
+            circleCollidesWithRectangle({
+                circle: { ...this, velocity },
+                rectangle: boundary
+            })
+        );
+    }
+
+    update(boundaries) {
+        // 在瓦片中心时处理转向
+        if (this.desiredDirection && this.isAtTileCenter()) {
+            // 如果当前被卡住，允许任何方向的转向
+            let currentlyBlocked = this.direction ? this.willCollide(boundaries, this.direction) : false;
+
+            if (currentlyBlocked) {
+                // 被卡住时，直接转向（不需要检测）
+                this.direction = this.desiredDirection;
+            } else {
+                // 没被卡住时，检测新方向是否会撞墙
+                let newDirectionBlocked = this.willCollide(boundaries, this.desiredDirection);
+                if (!newDirectionBlocked) {
+                    this.direction = this.desiredDirection;
+                }
+            }
+            this.desiredDirection = null;
+        }
+
+        // 移动
+        if (this.direction) {
+            let velocity = { x: 0, y: 0 };
+            if (this.direction === "up") velocity.y = -this.speed;
+            if (this.direction === "down") velocity.y = this.speed;
+            if (this.direction === "left") velocity.x = -this.speed;
+            if (this.direction === "right") velocity.x = this.speed;
+
+            // 检测当前方向是否会碰撞
+            if (!this.willCollide(boundaries, this.direction)) {
+                this.position.x += velocity.x;
+                this.position.y += velocity.y;
+            } else {
+                // 撞到墙了，停止移动
+                this.direction = null;
+            }
+        }
 
         this.draw();
     }
@@ -81,11 +161,11 @@ const player = new Player({
 //////////////////////////////////////////////////////
 
 const map = [
-  ['-', '-', '-', '-', '-', '-', '-'],
-  ['-', ' ', ' ', ' ', ' ', ' ', '-'],
-  ['-', ' ', '-', ' ', '-', ' ', '-'],
-  ['-', ' ', ' ', ' ', ' ', ' ', '-'],
-  ['-', '-', '-', '-', '-', '-', '-']
+    ['-', '-', '-', '-', '-', '-', '-'],
+    ['-', ' ', ' ', ' ', ' ', ' ', '-'],
+    ['-', ' ', '-', ' ', '-', ' ', '-'],
+    ['-', ' ', ' ', ' ', ' ', ' ', '-'],
+    ['-', '-', '-', '-', '-', '-', '-']
 ]
 
 const boundaries = [];
@@ -123,7 +203,7 @@ const actions = {
 window.addEventListener("keydown", (event) => {
     const action = actions[event.key];
     if (action) {
-        player.direction = action;
+        player.desiredDirection = action;
     }
 });
 
@@ -139,7 +219,7 @@ function animate() {
         boundary.draw();
     });
 
-    player.update();
+    player.update(boundaries);
 
 }
 
