@@ -741,7 +741,7 @@ function updateDebugDisplay() {
 }
 
 // 游戏缩放因子（比如 0.7 表示 70% 大小）
-const SCALE = 0.85;
+const SCALE = 0.6;
 
 // 在主循环里绘制之前缩放
 function gameLoop() {
@@ -765,7 +765,7 @@ function gameLoop() {
 
 // 调整画布大小并开始游戏
 canvas.width = level[0].length * TILE_SIZE * SCALE;
-canvas.height = level.length * TILE_SIZE *SCALE;
+canvas.height = level.length * TILE_SIZE * SCALE;
 
 console.log('游戏开始，玩家初始位置:', player.tileX, player.tileY);
 console.log('按键映射:', keyMap);

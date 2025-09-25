@@ -1,22 +1,157 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
+
 <head>
   <meta charset="UTF-8">
-  <title>Fullscreen Canvas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Xinyu Mao - 个人主页</title>
   <style>
-    body, html {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
-      background-color: black;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #000000;
+      color: #00ff00;
+      font-family: 'Courier New', 'Consolas', monospace;
+      height: 100vh;
+      display: flex;
+      padding: 75px;
+      gap: 20px;
     }
-    canvas {
-      display: block;
+
+    a { color: #4da6ff; text-decoration: none; font-size: 12px; }
+    a:hover { color: #66ffcc; text-decoration: underline; }
+
+    i { margin-right: 8px; }
+
+    /* 左侧容器 */
+    .left-container {
+      width: 350px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .profile {
+      padding: 20px;
+      background: #000000;
+    }
+    .profile h1 {
+      font-size: 64px;
+      margin-bottom: 8px;
+      color: #888888;
+      font-weight: normal;
+    }
+    .profile .subtitle {
+      font-size: 14px;
+      margin-bottom: 20px;
+      color: #888888;
+      line-height: 1.4;
+    }
+    .profile ul { list-style: none; }
+    .profile li {
+      margin-bottom: 5px;
+      font-size: 14px;
+      color: #888888;
+    }
+    .profile li::before { content: "• "; }
+
+    /* 右侧大嵌入容器 */
+    .right-container {
+      flex: 1;
+      /* border: 2px solid #888888; */
+      background: #000000;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .embed-frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: white;
+    }
+
+    .controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+    .control-btn {
+      background: #000000;
+      border: 1px solid #888888;
+      color: #888888;
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .control-btn:hover {
+      background: #888888;
+      color: #000000;
+    }
+
+    @media (max-width: 768px) {
+      body { flex-direction: column; padding: 10px; }
+      .left-container { width: 100%; }
+      .controls {
+        position: relative;
+        top: auto;
+        right: auto;
+        justify-content: center;
+        margin: 10px 0;
+      }
     }
   </style>
 </head>
+
 <body>
-  <canvas id="myCanvas"></canvas>
-  <script src="index.js"></script>
+  <!-- 左侧容器 -->
+  <div class="left-container">
+    <div class="profile">
+      <h1>Xinyu Mao</h1>
+      <div class="subtitle">I am a #Game Developer<br>and a #AI Researcher</div>
+      <ul>
+        <li>
+          <i class="fab fa-linkedin"></i>
+          <a href="https://www.linkedin.com/in/xinyu-mao1020" target="_blank">
+            www.linkedin.com/in/xinyu-mao1020
+          </a>
+        </li>
+        <li>
+          <i class="fab fa-github"></i>
+          <a href="https://github.com/coconut0726" target="_blank">
+            github.com/coconut0726
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div> <!-- ✅ 左侧关闭 -->
+
+  <!-- 右侧大嵌入容器 -->
+  <div class="right-container">
+    <!-- 控制按钮 -->
+    <div class="controls">
+      <button class="control-btn" onclick="loadPage('test.html')">test</button>
+      <button class="control-btn" onclick="loadPage('terminal.html')">terminal</button>
+      <button class="control-btn" onclick="loadPage('pacman.html')">pacman</button>
+      <button class="control-btn" onclick="loadPage('about:blank')">clear</button>
+    </div>
+
+    <!-- 嵌入框 -->
+    <iframe class="embed-frame" id="embedFrame" src="test.html" title="嵌入内容">
+      <p>您的浏览器不支持iframe</p>
+    </iframe>
+  </div>
+
+  <script>
+    const embedFrame = document.getElementById("embedFrame");
+
+    function loadPage(url) {
+      embedFrame.src = url;
+    }
+  </script>
 </body>
 </html>

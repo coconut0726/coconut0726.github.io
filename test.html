@@ -1,113 +1,66 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <title>Pixel Cat</title>
-    <style>
-        body {
-            background: #111;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-        }
-
-        canvas {
-            image-rendering: pixelated; /* 保持像素风 */
-            background: #000;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>像素猫 Canvas 动画</title>
+<style>
+  body {
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
+  canvas {
+    image-rendering: pixelated; /* 保持像素感 */
+    border: 2px solid #555;
+  }
+</style>
 </head>
 <body>
-    <canvas id="canvas" width="256" height="256"></canvas>
+<canvas id="canvas" width="32" height="32"></canvas>
 
-    <script>
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext("2d");
-        const pixel = 16; // 每个像素大小
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
-        // 猫本体像素矩阵 (16x16)
-        const cat = [
-            "....WW....WW....",
-            "...WWWW..WWWW...",
-            "..W....WW....W..",
-            "..W..B....B..W..",
-            "..W..........W..",
-            "...W..BBBB..W...",
-            "....WWWWWWWW....",
-            ".....WWWWWW.....",
-            "......WWWW......",
-            ".....W....W.....",
-            "....W......W....",
-            "................",
-            "................",
-            "................",
-            "................",
-            "................"
-        ];
+// 加载 sprite sheet
+const img = new Image();
+img.src = "CatPackFree/Box3.png"; // 确保和 html 在同一目录
 
-        // 颜色映射
-        const colors = {
-            "W": "#FFFFFF", // 白色 (身体)
-            "B": "#000000", // 黑色 (眼睛/嘴)
-            ".": null
-        };
+// 动画参数
+let frame = 0;                // 当前帧
+const totalFrames = 4;        // 总帧数（你的图是4帧）
+const frameWidth = 32;        // 单帧宽度
+const frameHeight = 32;       // 单帧高度
+const fps = 5;                // 每秒帧数（可以改快/慢）
+const frameDuration = 1000 / fps; // 每帧间隔时间
 
-        // 爪子偏移
-        let pawLeftOffset = 0;
-        let pawRightOffset = 0;
+let lastTime = 0;
 
-        // 绘制函数
-        function drawCat() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+// 动画循环
+function animate(timestamp) {
+  if (!lastTime) lastTime = timestamp;
+  const delta = timestamp - lastTime;
 
-            // 本体
-            for (let y = 0; y < cat.length; y++) {
-                for (let x = 0; x < cat[y].length; x++) {
-                    const c = colors[cat[y][x]];
-                    if (c) {
-                        ctx.fillStyle = c;
-                        ctx.fillRect(x * pixel, y * pixel, pixel, pixel);
-                    }
-                }
-            }
+  if (delta >= frameDuration) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+      img,
+      frame * frameWidth, 0, frameWidth, frameHeight, // 源图位置
+      0, 0, frameWidth, frameHeight                  // 画到canvas
+    );
+    frame = (frame + 1) % totalFrames; // 下一帧
+    lastTime = timestamp;
+  }
 
-            // 左爪
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(2 * pixel, (10 + pawLeftOffset) * pixel, 3 * pixel, pixel);
-            ctx.fillStyle = "#FFB6C1"; // 肉垫
-            ctx.fillRect(3 * pixel, (10 + pawLeftOffset) * pixel, pixel, pixel);
+  requestAnimationFrame(animate);
+}
 
-            // 右爪
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(11 * pixel, (10 + pawRightOffset) * pixel, 3 * pixel, pixel);
-            ctx.fillStyle = "#FFB6C1";
-            ctx.fillRect(12 * pixel, (10 + pawRightOffset) * pixel, pixel, pixel);
-        }
-
-        // 键盘控制
-        document.addEventListener("keydown", e => {
-            if (e.key === "a" || e.key === "A" || e.key === "ArrowLeft") {
-                pawLeftOffset = 2;
-            }
-            if (e.key === "l" || e.key === "L" || e.key === "ArrowRight") {
-                pawRightOffset = 2;
-            }
-            drawCat();
-        });
-
-        document.addEventListener("keyup", e => {
-            if (e.key === "a" || e.key === "A" || e.key === "ArrowLeft") {
-                pawLeftOffset = 0;
-            }
-            if (e.key === "l" || e.key === "L" || e.key === "ArrowRight") {
-                pawRightOffset = 0;
-            }
-            drawCat();
-        });
-
-        // 初始绘制
-        drawCat();
-    </script>
+// 图片加载完开始动画
+img.onload = () => {
+  requestAnimationFrame(animate);
+};
+</script>
 </body>
 </html>
