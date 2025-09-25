@@ -2,66 +2,112 @@
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
-    <title>颜文字 Demo</title>
+    <title>Pixel Cat</title>
     <style>
         body {
-            background: #222;
+            background: #111;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            margin: 0;
         }
 
         canvas {
+            image-rendering: pixelated; /* 保持像素风 */
             background: #000;
-            border: 2px solid #666;
         }
     </style>
 </head>
 <body>
-    <canvas id="canvas" width="600" height="300"></canvas>
+    <canvas id="canvas" width="256" height="256"></canvas>
 
     <script>
         const canvas = document.getElementById("canvas");
         const ctx = canvas.getContext("2d");
+        const pixel = 16; // 每个像素大小
 
-        ctx.font = "48px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "yellow";
+        // 猫本体像素矩阵 (16x16)
+        const cat = [
+            "....WW....WW....",
+            "...WWWW..WWWW...",
+            "..W....WW....W..",
+            "..W..B....B..W..",
+            "..W..........W..",
+            "...W..BBBB..W...",
+            "....WWWWWWWW....",
+            ".....WWWWWW.....",
+            "......WWWW......",
+            ".....W....W.....",
+            "....W......W....",
+            "................",
+            "................",
+            "................",
+            "................",
+            "................"
+        ];
 
-        // 预设颜文字
-        const kaomojis = {
-            UP: "(｀・ω・´)",
-            DOWN: "(≧▽≦)",
-            LEFT: "(￣▽￣)ノ",
-            RIGHT: "(づ￣ ³￣)づ",
-            TABLE: "(╯°□°）╯︵ ┻━┻"
+        // 颜色映射
+        const colors = {
+            "W": "#FFFFFF", // 白色 (身体)
+            "B": "#000000", // 黑色 (眼睛/嘴)
+            ".": null
         };
 
-        let current = "(≧▽≦)"; // 初始显示
+        // 爪子偏移
+        let pawLeftOffset = 0;
+        let pawRightOffset = 0;
 
         // 绘制函数
-        function drawKaomoji() {
+        function drawCat() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillText(current, canvas.width / 2, canvas.height / 2);
+
+            // 本体
+            for (let y = 0; y < cat.length; y++) {
+                for (let x = 0; x < cat[y].length; x++) {
+                    const c = colors[cat[y][x]];
+                    if (c) {
+                        ctx.fillStyle = c;
+                        ctx.fillRect(x * pixel, y * pixel, pixel, pixel);
+                    }
+                }
+            }
+
+            // 左爪
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(2 * pixel, (10 + pawLeftOffset) * pixel, 3 * pixel, pixel);
+            ctx.fillStyle = "#FFB6C1"; // 肉垫
+            ctx.fillRect(3 * pixel, (10 + pawLeftOffset) * pixel, pixel, pixel);
+
+            // 右爪
+            ctx.fillStyle = "#FFFFFF";
+            ctx.fillRect(11 * pixel, (10 + pawRightOffset) * pixel, 3 * pixel, pixel);
+            ctx.fillStyle = "#FFB6C1";
+            ctx.fillRect(12 * pixel, (10 + pawRightOffset) * pixel, pixel, pixel);
         }
 
-        // 键盘事件
-        window.addEventListener("keydown", e => {
-            switch (e.key) {
-                case "ArrowUp": case "w": case "W": current = kaomojis.UP; break;
-                case "ArrowDown": case "s": case "S": current = kaomojis.DOWN; break;
-                case "ArrowLeft": case "a": case "A": current = kaomojis.LEFT; break;
-                case "ArrowRight": case "d": case "D": current = kaomojis.RIGHT; break;
-                case " ": current = kaomojis.TABLE; break; // 空格掀桌
+        // 键盘控制
+        document.addEventListener("keydown", e => {
+            if (e.key === "a" || e.key === "A" || e.key === "ArrowLeft") {
+                pawLeftOffset = 2;
             }
-            drawKaomoji();
+            if (e.key === "l" || e.key === "L" || e.key === "ArrowRight") {
+                pawRightOffset = 2;
+            }
+            drawCat();
+        });
+
+        document.addEventListener("keyup", e => {
+            if (e.key === "a" || e.key === "A" || e.key === "ArrowLeft") {
+                pawLeftOffset = 0;
+            }
+            if (e.key === "l" || e.key === "L" || e.key === "ArrowRight") {
+                pawRightOffset = 0;
+            }
+            drawCat();
         });
 
         // 初始绘制
-        drawKaomoji();
+        drawCat();
     </script>
 </body>
 </html>
