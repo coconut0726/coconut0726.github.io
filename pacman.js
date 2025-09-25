@@ -267,7 +267,7 @@ class PacmanPlayer {
         ctx.restore();
 
         // 绘制调试信息
-        this.drawDebugVisuals(ctx);
+        //this.drawDebugVisuals(ctx);
     }
 
     drawDebugVisuals(ctx) {
@@ -757,7 +757,7 @@ function gameLoop() {
     player.draw(ctx);
 
     ctx.restore();            // 恢复状态
-    updateDebugDisplay();
+    //updateDebugDisplay();
 
     requestAnimationFrame(gameLoop);
 }
