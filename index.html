@@ -3,10 +3,13 @@
 
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Xinyu Mao - 个人主页</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
       background: #000000;
@@ -16,12 +19,22 @@
       display: flex;
       padding: 75px;
       gap: 20px;
+      position: relative;
     }
 
-    a { color: #4da6ff; text-decoration: none; font-size: 12px; }
-    a:hover { color: #66ffcc; text-decoration: underline; }
+    a {
+      color: #4da6ff;
+      text-decoration: none;
+    }
 
-    i { margin-right: 8px; }
+    a:hover {
+      color: #66ffcc;
+      text-decoration: underline;
+    }
+
+    i {
+      margin-right: 8px;
+    }
 
     /* 左侧容器 */
     .left-container {
@@ -35,30 +48,38 @@
       padding: 20px;
       background: #000000;
     }
+
     .profile h1 {
       font-size: 64px;
       margin-bottom: 8px;
       color: #888888;
       font-weight: normal;
     }
+
     .profile .subtitle {
-      font-size: 14px;
+      font-size: 18px;
       margin-bottom: 20px;
       color: #888888;
       line-height: 1.4;
     }
-    .profile ul { list-style: none; }
+
+    .profile ul {
+      list-style: none;
+    }
+
     .profile li {
       margin-bottom: 5px;
       font-size: 14px;
       color: #888888;
     }
-    .profile li::before { content: "• "; }
+
+    .profile li::before {
+      content: "• ";
+    }
 
     /* 右侧大嵌入容器 */
     .right-container {
       flex: 1;
-      /* border: 2px solid #888888; */
       background: #000000;
       position: relative;
       overflow: hidden;
@@ -79,6 +100,7 @@
       gap: 10px;
       z-index: 100;
     }
+
     .control-btn {
       background: #000000;
       border: 1px solid #888888;
@@ -88,21 +110,22 @@
       cursor: pointer;
       transition: all 0.3s ease;
     }
+
     .control-btn:hover {
       background: #888888;
       color: #000000;
     }
 
-    @media (max-width: 768px) {
-      body { flex-direction: column; padding: 10px; }
-      .left-container { width: 100%; }
-      .controls {
-        position: relative;
-        top: auto;
-        right: auto;
-        justify-content: center;
-        margin: 10px 0;
-      }
+    /* 可拖动区域 */
+    .draggable-area {
+      position: absolute;
+      top: 550px;
+      left: 50px;
+      width: 200px;
+      height: 200px;
+      background: rgba(136, 136, 136, 0);
+      cursor: move;
+      z-index: 9999;
     }
   </style>
 </head>
@@ -128,30 +151,50 @@
         </li>
       </ul>
     </div>
-  </div> <!-- ✅ 左侧关闭 -->
+  </div>
 
   <!-- 右侧大嵌入容器 -->
   <div class="right-container">
-    <!-- 控制按钮 -->
     <div class="controls">
-      <button class="control-btn" onclick="loadPage('test.html')">test</button>
       <button class="control-btn" onclick="loadPage('terminal.html')">terminal</button>
       <button class="control-btn" onclick="loadPage('pacman.html')">pacman</button>
+      <button class="control-btn" onclick="loadPage('test.html')">test</button>
       <button class="control-btn" onclick="loadPage('about:blank')">clear</button>
     </div>
+    <iframe class="embed-frame" id="embedFrame" src="terminal.html"></iframe>
+  </div>
 
-    <!-- 嵌入框 -->
-    <iframe class="embed-frame" id="embedFrame" src="test.html" title="嵌入内容">
-      <p>您的浏览器不支持iframe</p>
-    </iframe>
+  <!-- 可拖动区域 -->
+  <div class="draggable-area">
+    <canvas id="catCanvas" width="200" height="200"></canvas>
   </div>
 
   <script>
     const embedFrame = document.getElementById("embedFrame");
+    function loadPage(url) { embedFrame.src = url; }
 
-    function loadPage(url) {
-      embedFrame.src = url;
-    }
+    // 拖动逻辑
+    const dragArea = document.getElementById("draggableArea");
+    let isDragging = false, offsetX, offsetY;
+
+    dragArea.addEventListener("mousedown", (e) => {
+      isDragging = true;
+      offsetX = e.clientX - dragArea.offsetLeft;
+      offsetY = e.clientY - dragArea.offsetTop;
+    });
+
+    document.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      dragArea.style.left = (e.clientX - offsetX) + "px";
+      dragArea.style.top = (e.clientY - offsetY) + "px";
+    });
+
+    document.addEventListener("mouseup", () => { isDragging = false; });
   </script>
+
+  <!-- 引入猫动画脚本 -->
+  <script src="cat.js"></script>
+
 </body>
+
 </html>
