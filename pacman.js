@@ -32,7 +32,7 @@ const level = [
     [2, 1, 3, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1, 0, 3, 1, 2],
     [2, 1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1, 2],
     [2, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 2],
-    [2, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 2],
+    [2, 1, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 2],
     [2, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2],
     [2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2],
     [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
@@ -532,144 +532,134 @@ class LevelRenderer {
 
         // === 直线边 ===
         else {
-            const radius = third / 2; // 半圆的半径 = 1/6 tileSize
+            const radius = third / 2; // 半径 = 1/6 tileSize
+            const midY = pixelY + size / 2;
+            const midX = pixelX + size / 2;
 
-            // 横线（上）
+            // 横线
             if (!up) {
-                if (!left && !right) {
-                    // 两边都没邻居 → 中间 2/3 段
+                if (left && right) {
+                    // 左右都有邻居 → 整条横线
                     ctx.beginPath();
-                    ctx.moveTo(pixelX + third, pixelY + third);
-                    ctx.lineTo(pixelX + twoThird, pixelY + third);
-                    ctx.stroke();
-                } else if (!left && right) {
-                    // 左端封口
-                    ctx.beginPath();
-                    ctx.moveTo(pixelX + third, pixelY + third);
+                    ctx.moveTo(pixelX, pixelY + third);
                     ctx.lineTo(pixelX + size, pixelY + third);
-                    ctx.stroke();
-
-                    ctx.beginPath();
-                    ctx.arc(pixelX + third, pixelY + third, radius, 0.5 * Math.PI, 1.5 * Math.PI, false);
                     ctx.stroke();
                 } else if (left && !right) {
-                    // 右端封口
+                    // 只有左邻居 → 2/3 长直线 + 右端半圆
                     ctx.beginPath();
                     ctx.moveTo(pixelX, pixelY + third);
                     ctx.lineTo(pixelX + twoThird, pixelY + third);
                     ctx.stroke();
 
                     ctx.beginPath();
-                    ctx.arc(pixelX + twoThird, pixelY + third, radius, 1.5 * Math.PI, 0.5 * Math.PI, false);
+                    ctx.arc(pixelX + twoThird, midY, radius, 1.5 * Math.PI, 0.5 * Math.PI, false);
                     ctx.stroke();
-                } else {
-                    // 两端都有邻居 → 整条
+                } else if (!left && right) {
+                    // 只有右邻居 → 2/3 长直线 + 左端半圆
                     ctx.beginPath();
-                    ctx.moveTo(pixelX, pixelY + third);
+                    ctx.moveTo(pixelX + third, pixelY + third);
                     ctx.lineTo(pixelX + size, pixelY + third);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(pixelX + third, midY, radius, 0.5 * Math.PI, 1.5 * Math.PI, false);
                     ctx.stroke();
                 }
             }
 
-            // 横线（下）
             if (!down) {
-                if (!left && !right) {
+                if (left && right) {
+                    // 左右都有邻居 → 整条横线
                     ctx.beginPath();
-                    ctx.moveTo(pixelX + third, pixelY + twoThird);
-                    ctx.lineTo(pixelX + twoThird, pixelY + twoThird);
-                    ctx.stroke();
-                } else if (!left && right) {
-                    ctx.beginPath();
-                    ctx.moveTo(pixelX + third, pixelY + twoThird);
+                    ctx.moveTo(pixelX, pixelY + twoThird);
                     ctx.lineTo(pixelX + size, pixelY + twoThird);
-                    ctx.stroke();
-
-                    ctx.beginPath();
-                    ctx.arc(pixelX + third, pixelY + twoThird, radius, 0.5 * Math.PI, 1.5 * Math.PI, false);
                     ctx.stroke();
                 } else if (left && !right) {
+                    // 只有左邻居 → 2/3 长直线 + 右端半圆
                     ctx.beginPath();
                     ctx.moveTo(pixelX, pixelY + twoThird);
                     ctx.lineTo(pixelX + twoThird, pixelY + twoThird);
                     ctx.stroke();
 
                     ctx.beginPath();
-                    ctx.arc(pixelX + twoThird, pixelY + twoThird, radius, 1.5 * Math.PI, 0.5 * Math.PI, false);
+                    ctx.arc(pixelX + twoThird, midY, radius, 1.5 * Math.PI, 0.5 * Math.PI, false);
                     ctx.stroke();
-                } else {
+                } else if (!left && right) {
+                    // 只有右邻居 → 2/3 长直线 + 左端半圆
                     ctx.beginPath();
-                    ctx.moveTo(pixelX, pixelY + twoThird);
+                    ctx.moveTo(pixelX + third, pixelY + twoThird);
                     ctx.lineTo(pixelX + size, pixelY + twoThird);
                     ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(pixelX + third, midY, radius, 0.5 * Math.PI, 1.5 * Math.PI, false);
+                    ctx.stroke();
                 }
             }
 
-            // 竖线（左）
+            // 竖线
             if (!left) {
-                if (!up && !down) {
+                if (up && down) {
+                    // 上下都有邻居 → 整条竖线
                     ctx.beginPath();
-                    ctx.moveTo(pixelX + third, pixelY + third);
-                    ctx.lineTo(pixelX + third, pixelY + twoThird);
-                    ctx.stroke();
-                } else if (!up && down) {
-                    ctx.beginPath();
-                    ctx.moveTo(pixelX + third, pixelY + third);
+                    ctx.moveTo(pixelX + third, pixelY);
                     ctx.lineTo(pixelX + third, pixelY + size);
-                    ctx.stroke();
-
-                    ctx.beginPath();
-                    ctx.arc(pixelX + third, pixelY + third, radius, Math.PI, 2 * Math.PI, false);
                     ctx.stroke();
                 } else if (up && !down) {
+                    // 只有上邻居 → 2/3 长直线 + 下端半圆
                     ctx.beginPath();
                     ctx.moveTo(pixelX + third, pixelY);
                     ctx.lineTo(pixelX + third, pixelY + twoThird);
                     ctx.stroke();
 
                     ctx.beginPath();
-                    ctx.arc(pixelX + third, pixelY + twoThird, radius, 0, Math.PI, false);
+                    ctx.arc(midX, pixelY + twoThird, radius, 0, Math.PI, false);
                     ctx.stroke();
-                } else {
+                } else if (!up && down) {
+                    // 只有下邻居 → 2/3 长直线 + 上端半圆
                     ctx.beginPath();
-                    ctx.moveTo(pixelX + third, pixelY);
+                    ctx.moveTo(pixelX + third, pixelY + third);
                     ctx.lineTo(pixelX + third, pixelY + size);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(midX, pixelY + third, radius, Math.PI, 2 * Math.PI, false);
                     ctx.stroke();
                 }
             }
 
-            // 竖线（右）
             if (!right) {
-                if (!up && !down) {
+                if (up && down) {
+                    // 上下都有邻居 → 整条竖线
                     ctx.beginPath();
-                    ctx.moveTo(pixelX + twoThird, pixelY + third);
-                    ctx.lineTo(pixelX + twoThird, pixelY + twoThird);
-                    ctx.stroke();
-                } else if (!up && down) {
-                    ctx.beginPath();
-                    ctx.moveTo(pixelX + twoThird, pixelY + third);
+                    ctx.moveTo(pixelX + twoThird, pixelY);
                     ctx.lineTo(pixelX + twoThird, pixelY + size);
-                    ctx.stroke();
-
-                    ctx.beginPath();
-                    ctx.arc(pixelX + twoThird, pixelY + third, radius, Math.PI, 2 * Math.PI, false);
                     ctx.stroke();
                 } else if (up && !down) {
+                    // 只有上邻居 → 2/3 长直线 + 下端半圆
                     ctx.beginPath();
                     ctx.moveTo(pixelX + twoThird, pixelY);
                     ctx.lineTo(pixelX + twoThird, pixelY + twoThird);
                     ctx.stroke();
 
                     ctx.beginPath();
-                    ctx.arc(pixelX + twoThird, pixelY + twoThird, radius, 0, Math.PI, false);
+                    ctx.arc(midX, pixelY + twoThird, radius, 0, Math.PI, false);
                     ctx.stroke();
-                } else {
+                } else if (!up && down) {
+                    // 只有下邻居 → 2/3 长直线 + 上端半圆
                     ctx.beginPath();
-                    ctx.moveTo(pixelX + twoThird, pixelY);
+                    ctx.moveTo(pixelX + twoThird, pixelY + third);
                     ctx.lineTo(pixelX + twoThird, pixelY + size);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.arc(midX, pixelY + third, radius, Math.PI, 2 * Math.PI, false);
                     ctx.stroke();
                 }
             }
         }
+
+
 
     }
 
@@ -750,23 +740,32 @@ function updateDebugDisplay() {
     `;
 }
 
-// 游戏主循环
+// 游戏缩放因子（比如 0.7 表示 70% 大小）
+const SCALE = 0.85;
+
+// 在主循环里绘制之前缩放
 function gameLoop() {
+    ctx.save();               // 保存状态
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // 重置 transform
+    ctx.scale(SCALE, SCALE);  // 缩放绘制
+
     ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvas.width / SCALE, canvas.height / SCALE);
 
     player.update(level);
     levelRenderer.draw(ctx);
     player.draw(ctx);
 
+    ctx.restore();            // 恢复状态
     updateDebugDisplay();
 
     requestAnimationFrame(gameLoop);
 }
 
+
 // 调整画布大小并开始游戏
-canvas.width = level[0].length * TILE_SIZE;
-canvas.height = level.length * TILE_SIZE;
+canvas.width = level[0].length * TILE_SIZE * SCALE;
+canvas.height = level.length * TILE_SIZE *SCALE;
 
 console.log('游戏开始，玩家初始位置:', player.tileX, player.tileY);
 console.log('按键映射:', keyMap);
