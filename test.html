@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>调试版 Pacman</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            border: 2px solid #0000FF;
+            background: #000;
+        }
+
+        .debug-info {
+            color: white;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-family: monospace;
+            font-size: 14px;
+        }
+
+        .controls {
+            color: white;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="debug-info" id="debugInfo">
+        调试信息将在这里显示
+    </div>
+    <div class="controls">
+        <p>使用方向键或 WASD 控制</p>
+        <p>按 G 键显示/隐藏网格</p>
+    </div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const debugInfo = document.getElementById('debugInfo');
+
+        // 游戏配置
+        const TILE_SIZE = 40;
+        const WALL = 1;
+        const DOT = 0;
+        const EMPTY = 2;
+        const POWER_PELLET = 3;
+
+        let showGrid = true;
+
+        // 简化的测试关卡
+        const level = [
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 3, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 3, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 0, 1, 1, 1, 2, 1, 2, 1, 1, 1, 0, 1, 1, 1, 1],
+            [2, 2, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 2, 2],
+            [1, 1, 1, 1, 0, 1, 2, 1, 1, 2, 1, 1, 2, 1, 0, 1, 1, 1, 1],
+            [2, 2, 2, 2, 0, 2, 2, 1, 2, 2, 2, 1, 2, 2, 0, 2, 2, 2, 2],
+            [1, 1, 1, 1, 0, 1, 2, 1, 1, 1, 1, 1, 2, 1, 0, 1, 1, 1, 1],
+            [2, 2, 2, 1, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 0, 1, 2, 2, 2],
+            [1, 1, 1, 1, 0, 1, 1, 1, 2, 1, 2, 1, 1, 1, 0, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 0, 1],
+            [1, 3, 0, 1, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 1, 0, 3, 1],
+            [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1],
+            [1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        ];
+
+        // 方向常量
+        const _COS = [1, 0, -1, 0]; // right, down, left, up
+        const _SIN = [0, 1, 0, -1];
+
+        class PacmanPlayer {
+            constructor({ x, y, tileSize = 40, speed = 2 }) {
+                this.tileX = x;
+                this.tileY = y;
+                this.tileSize = tileSize;
+
+                this.pixelX = x * tileSize + tileSize / 2;
+                this.pixelY = y * tileSize + tileSize / 2;
+
+                this.direction = null;
+                this.nextDirection = null;
+                this.speed = speed;
+                this.radius = tileSize * 0.35;
+
+                this.score = 0;
+
+                // 动画相关
+                this.animFrame = 0;
+                this.animSpeed = 0.15; // 调整动画速度
+                this.currentFrame = 1; // 当前帧 1-3
+                
+                // 图片资源
+                this.sprites = {};
+                this.spritesLoaded = false;
+                this.loadSprites();
+
+                // 调试变量
+                this.debugLog = [];
+            }
+
+            async loadSprites() {
+                const directions = ['up', 'down', 'left', 'right'];
+                const promises = [];
+                
+                for (const dir of directions) {
+                    this.sprites[dir] = [];
+                    for (let i = 1; i <= 3; i++) {
+                        const img = new Image();
+                        const promise = new Promise((resolve, reject) => {
+                            img.onload = () => resolve();
+                            img.onerror = () => {
+                                // 如果图片加载失败，创建一个简单的占位符
+                                console.warn(`无法加载图片: /pacman-art/pacman-${dir}/${i}.png`);
+                                resolve();
+                            };
+                        });
+                        img.src = `/pacman-art/pacman-${dir}/${i}.png`;
+                        this.sprites[dir][i-1] = img;
+                        promises.push(promise);
+                    }
+                }
+                
+                try {
+                    await Promise.all(promises);
+                    this.spritesLoaded = true;
+                    console.log('Pacman精灵图片加载完成');
+                } catch (error) {
+                    console.warn('部分图片加载失败，将使用默认绘制方式');
+                }
+            }
+
+            log(message) {
+                const timestamp = Date.now();
+                this.debugLog.push(`${timestamp}: ${message}`);
+                if (this.debugLog.length > 15) {
+                    this.debugLog.shift();
+                }
+                console.log(`[${timestamp}] ${message}`);
+            }
+
+            canMove(direction, maze) {
+                return this.canMoveFromTile(this.tileX, this.tileY, direction, maze);
+            }
+
+            canMoveFromTile(fromTileX, fromTileY, direction, maze) {
+                let nextTileX = fromTileX;
+                let nextTileY = fromTileY;
+
+                switch (direction) {
+                    case 'UP': nextTileY -= 1; break;
+                    case 'DOWN': nextTileY += 1; break;
+                    case 'LEFT': nextTileX -= 1; break;
+                    case 'RIGHT': nextTileX += 1; break;
+                    default:
+                        this.log(`canMove: 无效方向 ${direction}`);
+                        return false;
+                }
+
+                // 检查边界
+                if (nextTileX < 0 || nextTileX >= maze[0].length ||
+                    nextTileY < 0 || nextTileY >= maze.length) {
+                    this.log(`canMoveFromTile: 越界 from(${fromTileX},${fromTileY}) to(${nextTileX}, ${nextTileY})`);
+                    return false;
+                }
+
+                const tileType = maze[nextTileY][nextTileX];
+                const canMove = tileType !== WALL;
+                this.log(`canMoveFromTile ${direction}: from(${fromTileX},${fromTileY}) to(${nextTileX},${nextTileY}) = ${tileType}, can=${canMove}`);
+                return canMove;
+            }
+
+            isAtTileCenter() {
+                const centerX = this.tileX * this.tileSize + this.tileSize / 2;
+                const centerY = this.tileY * this.tileSize + this.tileSize / 2;
+
+                const threshold = this.speed * 0.5;
+                const atCenter = Math.abs(this.pixelX - centerX) <= threshold &&
+                    Math.abs(this.pixelY - centerY) <= threshold;
+
+                if (atCenter) {
+                    this.log(`在瓦片中心: pixel(${this.pixelX.toFixed(1)}, ${this.pixelY.toFixed(1)}) center(${centerX}, ${centerY}) threshold=${threshold}`);
+                }
+
+                return atCenter;
+            }
+
+            snapToTileCenter() {
+                const oldX = this.pixelX;
+                const oldY = this.pixelY;
+                this.pixelX = this.tileX * this.tileSize + this.tileSize / 2;
+                this.pixelY = this.tileY * this.tileSize + this.tileSize / 2;
+                this.log(`对齐到中心: (${oldX.toFixed(1)}, ${oldY.toFixed(1)}) -> (${this.pixelX}, ${this.pixelY})`);
+            }
+
+            setDirection(direction) {
+                this.log(`设置期望方向: ${this.nextDirection} -> ${direction}`);
+                this.nextDirection = direction;
+            }
+
+            update(maze) {
+                let wasAtTileCenter = false;
+
+                if (this.isAtTileCenter()) {
+                    wasAtTileCenter = true;
+                    this.snapToTileCenter();
+
+                    // 收集豆豆
+                    const currentTile = maze[this.tileY][this.tileX];
+                    if (currentTile === DOT) {
+                        maze[this.tileY][this.tileX] = EMPTY;
+                        this.score += 10;
+                        this.log(`收集豆豆，分数: ${this.score}`);
+                    } else if (currentTile === POWER_PELLET) {
+                        maze[this.tileY][this.tileX] = EMPTY;
+                        this.score += 50;
+                        this.log(`收集能量球，分数: ${this.score}`);
+                    }
+
+                    // 处理方向变更
+                    if (this.nextDirection) {
+                        this.log(`尝试转向: ${this.direction} -> ${this.nextDirection}`);
+                        if (this.canMove(this.nextDirection, maze)) {
+                            this.direction = this.nextDirection;
+                            this.nextDirection = null;
+                            this.log(`转向成功: 新方向 ${this.direction}`);
+                        } else {
+                            this.log(`转向失败: ${this.nextDirection} 被阻挡，保持 ${this.direction}`);
+                        }
+                    }
+
+                    if (this.direction && !this.canMove(this.direction, maze)) {
+                        this.log(`当前方向 ${this.direction} 在瓦片中心被阻挡，停止移动`);
+                        this.direction = null;
+                    }
+                } else if (this.nextDirection && this.direction) {
+                    // 预转向逻辑
+                    const nextTileX = this.tileX + (this.direction === 'RIGHT' ? 1 : this.direction === 'LEFT' ? -1 : 0);
+                    const nextTileY = this.tileY + (this.direction === 'DOWN' ? 1 : this.direction === 'UP' ? -1 : 0);
+                    const nextCenterX = nextTileX * this.tileSize + this.tileSize / 2;
+                    const nextCenterY = nextTileY * this.tileSize + this.tileSize / 2;
+
+                    const distToNextCenter = Math.abs(this.pixelX - nextCenterX) + Math.abs(this.pixelY - nextCenterY);
+                    if (distToNextCenter <= this.speed * 1.5) {
+                        this.log(`接近下一个瓦片中心，尝试预转向: ${this.nextDirection}`);
+                        if (this.canMoveFromTile(nextTileX, nextTileY, this.nextDirection, maze)) {
+                            this.log(`预转向成功: ${this.direction} -> ${this.nextDirection}`);
+                            this.direction = this.nextDirection;
+                            this.nextDirection = null;
+                        }
+                    }
+                }
+
+                // 执行移动
+                if (this.direction) {
+                    let deltaX = 0, deltaY = 0;
+
+                    switch (this.direction) {
+                        case 'UP': deltaY = -this.speed; break;
+                        case 'DOWN': deltaY = this.speed; break;
+                        case 'LEFT': deltaX = -this.speed; break;
+                        case 'RIGHT': deltaX = this.speed; break;
+                    }
+
+                    const oldPixelX = this.pixelX;
+                    const oldPixelY = this.pixelY;
+
+                    this.pixelX += deltaX;
+                    this.pixelY += deltaY;
+
+                    this.log(`移动 ${this.direction}: (${oldPixelX.toFixed(1)}, ${oldPixelY.toFixed(1)}) -> (${this.pixelX.toFixed(1)}, ${this.pixelY.toFixed(1)}) [wasAtCenter: ${wasAtTileCenter}]`);
+
+                    // 更新瓦片坐标
+                    const newTileX = Math.floor((this.pixelX - this.tileSize / 2) / this.tileSize + 0.5);
+                    const newTileY = Math.floor((this.pixelY - this.tileSize / 2) / this.tileSize + 0.5);
+
+                    if (newTileX !== this.tileX || newTileY !== this.tileY) {
+                        this.log(`瓦片坐标变化: (${this.tileX}, ${this.tileY}) -> (${newTileX}, ${newTileY})`);
+                        this.tileX = newTileX;
+                        this.tileY = newTileY;
+                    }
+                } else {
+                    if (this.nextDirection) {
+                        this.log(`等待转向机会: ${this.nextDirection}, 当前在瓦片中心: ${this.isAtTileCenter()}`);
+                    }
+                }
+
+                this.updateAnimation();
+            }
+
+            updateAnimation() {
+                if (this.direction) {
+                    this.animFrame += this.animSpeed;
+                    if (this.animFrame >= 1) {
+                        this.animFrame = 0;
+                        this.currentFrame = (this.currentFrame % 3) + 1; // 循环1-2-3-1-2-3...
+                    }
+                }
+            }
+
+            draw(ctx) {
+                // 如果图片已加载，使用图片绘制
+                if (this.spritesLoaded && this.direction) {
+                    this.drawSprite(ctx);
+                } else {
+                    // 使用默认绘制方式
+                    this.drawDefault(ctx);
+                }
+
+                // 绘制调试信息
+                this.drawDebugVisuals(ctx);
+            }
+
+            drawSprite(ctx) {
+                const directionMap = {
+                    'UP': 'up',
+                    'DOWN': 'down',
+                    'LEFT': 'left',
+                    'RIGHT': 'right'
+                };
+
+                const spriteDir = directionMap[this.direction] || 'right';
+                const frameIndex = this.currentFrame - 1;
+                const sprite = this.sprites[spriteDir] && this.sprites[spriteDir][frameIndex];
+
+                if (sprite && sprite.complete && sprite.naturalWidth > 0) {
+                    const size = this.tileSize * 0.8; // 稍微小一些以适应瓦片
+                    ctx.drawImage(
+                        sprite,
+                        this.pixelX - size / 2,
+                        this.pixelY - size / 2,
+                        size,
+                        size
+                    );
+                } else {
+                    // 如果图片无法使用，回退到默认绘制
+                    this.drawDefault(ctx);
+                }
+            }
+
+            drawDefault(ctx) {
+                // 绘制玩家 - 默认方式
+                ctx.save();
+                ctx.translate(this.pixelX, this.pixelY);
+
+                let rotation = 0;
+                switch (this.direction) {
+                    case 'RIGHT': rotation = 0; break;
+                    case 'DOWN': rotation = Math.PI / 2; break;
+                    case 'LEFT': rotation = Math.PI; break;
+                    case 'UP': rotation = -Math.PI / 2; break;
+                }
+                ctx.rotate(rotation);
+
+                ctx.fillStyle = '#FFFF00';
+                ctx.beginPath();
+
+                // 根据当前帧决定嘴巴开合
+                const mouthOpen = this.currentFrame === 2; // 第2帧张嘴
+                if (mouthOpen && this.direction) {
+                    ctx.arc(0, 0, this.radius, Math.PI * 0.2, Math.PI * 1.8);
+                    ctx.lineTo(0, 0);
+                } else {
+                    ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+                }
+
+                ctx.fill();
+                ctx.restore();
+            }
+
+            drawDebugVisuals(ctx) {
+                // 当前瓦片高亮
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+                ctx.lineWidth = 3;
+                ctx.strokeRect(
+                    this.tileX * this.tileSize,
+                    this.tileY * this.tileSize,
+                    this.tileSize,
+                    this.tileSize
+                );
+
+                // 瓦片中心点
+                const centerX = this.tileX * this.tileSize + this.tileSize / 2;
+                const centerY = this.tileY * this.tileSize + this.tileSize / 2;
+                ctx.fillStyle = 'red';
+                ctx.fillRect(centerX - 3, centerY - 3, 6, 6);
+
+                // 玩家实际位置
+                ctx.fillStyle = 'lime';
+                ctx.fillRect(this.pixelX - 2, this.pixelY - 2, 4, 4);
+
+                // 方向指示器
+                if (this.direction) {
+                    ctx.strokeStyle = 'cyan';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(this.pixelX, this.pixelY);
+
+                    let endX = this.pixelX, endY = this.pixelY;
+                    switch (this.direction) {
+                        case 'UP': endY -= 20; break;
+                        case 'DOWN': endY += 20; break;
+                        case 'LEFT': endX -= 20; break;
+                        case 'RIGHT': endX += 20; break;
+                    }
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                }
+            }
+
+            getDebugInfo() {
+                return {
+                    tilePos: `(${this.tileX}, ${this.tileY})`,
+                    pixelPos: `(${this.pixelX.toFixed(1)}, ${this.pixelY.toFixed(1)})`,
+                    direction: this.direction || 'NULL',
+                    nextDirection: this.nextDirection || 'NULL',
+                    atCenter: this.isAtTileCenter(),
+                    score: this.score,
+                    frame: this.currentFrame,
+                    spritesLoaded: this.spritesLoaded,
+                    recentLogs: this.debugLog.slice(-8)
+                };
+            }
+        }
+
+        class LevelRenderer {
+            constructor(maze, tileSize) {
+                this.maze = maze;
+                this.tileSize = tileSize;
+            }
+
+            // 获取指定位置的瓦片类型，边界外返回0（非墙）
+            get(x, y) {
+                if (x < 0 || x >= this.maze[0].length || y < 0 || y >= this.maze.length) {
+                    return 0;
+                }
+                return this.maze[y][x];
+            }
+
+            // 将瓦片坐标转换为像素坐标
+            coord2position(x, y) {
+                return {
+                    x: x * this.tileSize,
+                    y: y * this.tileSize
+                };
+            }
+
+            draw(ctx) {
+                for (let y = 0; y < this.maze.length; y++) {
+                    for (let x = 0; x < this.maze[y].length; x++) {
+                        const tile = this.maze[y][x];
+                        const pixelX = x * this.tileSize;
+                        const pixelY = y * this.tileSize;
+                        const centerX = pixelX + this.tileSize / 2;
+                        const centerY = pixelY + this.tileSize / 2;
+
+                        switch (tile) {
+                            case WALL:
+                                this.drawWallWithRoundedEdges(ctx, x, y);
+                                break;
+
+                            case DOT:
+                                ctx.fillStyle = '#FFFF00';
+                                ctx.beginPath();
+                                ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
+                                ctx.fill();
+                                break;
+
+                            case POWER_PELLET:
+                                ctx.fillStyle = '#FFFF00';
+                                ctx.beginPath();
+                                ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
+                                ctx.fill();
+
+                                const flash = Math.sin(Date.now() * 0.01) * 0.3 + 0.7;
+                                ctx.fillStyle = `rgba(255, 255, 0, ${flash})`;
+                                ctx.beginPath();
+                                ctx.arc(centerX, centerY, 10, 0, Math.PI * 2);
+                                ctx.fill();
+                                break;
+                        }
+                    }
+                }
+
+                // 绘制网格
+                if (showGrid) {
+                    this.drawGrid(ctx);
+                }
+            }
+
+            drawWallWithRoundedEdges(ctx, i, j) {
+                const value = this.get(i, j);
+                if (!value) return;
+
+                ctx.lineWidth = 2;
+                
+                // 检查相邻的墙体
+                const code = [0, 0, 0, 0];
+                
+                // 右边有墙且不被包围
+                if (this.get(i + 1, j) && !(this.get(i + 1, j - 1) && this.get(i + 1, j + 1) && this.get(i, j - 1) && this.get(i, j + 1))) {
+                    code[0] = 1;
+                }
+                // 下边有墙且不被包围
+                if (this.get(i, j + 1) && !(this.get(i - 1, j + 1) && this.get(i + 1, j + 1) && this.get(i - 1, j) && this.get(i + 1, j))) {
+                    code[1] = 1;
+                }
+                // 左边有墙且不被包围
+                if (this.get(i - 1, j) && !(this.get(i - 1, j - 1) && this.get(i - 1, j + 1) && this.get(i, j - 1) && this.get(i, j + 1))) {
+                    code[2] = 1;
+                }
+                // 上边有墙且不被包围
+                if (this.get(i, j - 1) && !(this.get(i - 1, j - 1) && this.get(i + 1, j - 1) && this.get(i - 1, j) && this.get(i + 1, j))) {
+                    code[3] = 1;
+                }
+
+                if (code.indexOf(1) > -1) {
+                    ctx.strokeStyle = value == 2 ? "#FFF" : "#072FFF";
+                    const pos = this.coord2position(i, j);
+                    const codeStr = code.join('');
+
+                    switch (codeStr) {
+                        case '1100': // 右下圆角
+                            ctx.beginPath();
+                            ctx.arc(pos.x + this.tileSize / 2, pos.y + this.tileSize / 2, this.tileSize / 2, Math.PI, 1.5 * Math.PI, false);
+                            ctx.stroke();
+                            break;
+                        case '0110': // 左下圆角
+                            ctx.beginPath();
+                            ctx.arc(pos.x - this.tileSize / 2, pos.y + this.tileSize / 2, this.tileSize / 2, 1.5 * Math.PI, 2 * Math.PI, false);
+                            ctx.stroke();
+                            break;
+                        case '0011': // 左上圆角
+                            ctx.beginPath();
+                            ctx.arc(pos.x - this.tileSize / 2, pos.y - this.tileSize / 2, this.tileSize / 2, 0, 0.5 * Math.PI, false);
+                            ctx.stroke();
+                            break;
+                        case '1001': // 右上圆角
+                            ctx.beginPath();
+                            ctx.arc(pos.x + this.tileSize / 2, pos.y - this.tileSize / 2, this.tileSize / 2, 0.5 * Math.PI, 1 * Math.PI, false);
+                            ctx.stroke();
+                            break;
+                        default:
+                            // 绘制直线边界
+                            const dist = this.tileSize / 2;
+                            code.forEach((v, index) => {
+                                if (v) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(pos.x, pos.y);
+                                    ctx.lineTo(pos.x - _COS[index] * dist, pos.y - _SIN[index] * dist);
+                                    ctx.stroke();
+                                }
+                            });
+                    }
+                }
+            }
+
+            drawGrid(ctx) {
+                ctx.strokeStyle = 'rgba(128, 128, 128, 0.3)';
+                ctx.lineWidth = 1;
+
+                for (let x = 0; x <= this.maze[0].length; x++) {
+                    ctx.beginPath();
+                    ctx.moveTo(x * this.tileSize, 0);
+                    ctx.lineTo(x * this.tileSize, this.maze.length * this.tileSize);
+                    ctx.stroke();
+                }
+
+                for (let y = 0; y <= this.maze.length; y++) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y * this.tileSize);
+                    ctx.lineTo(this.maze[0
