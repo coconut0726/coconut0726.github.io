@@ -366,14 +366,14 @@ class LevelRenderer {
                         break;
 
                     case DOT:
-                        ctx.fillStyle = '#FFFF00';
+                        ctx.fillStyle = '#FAB9B0';
                         ctx.beginPath();
                         ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
                         ctx.fill();
                         break;
 
                     case POWER_PELLET:
-                        ctx.fillStyle = '#FFFF00';
+                        ctx.fillStyle = '#FAB9B0';
                         ctx.beginPath();
                         ctx.arc(centerX, centerY, 8, 0, Math.PI * 2);
                         ctx.fill();

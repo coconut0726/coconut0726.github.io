@@ -21,7 +21,7 @@ let topText = "";
 let textTimeout = null;
 
 // 候选内容
-const messages = ["Try different commands.", "Play Pacman.", "Hi, this is Coconut.", "There's a cheat mode."];
+const messages = ["Try different commands.", "Play Pacman.", "Hi, this is Coconut.", "There's a cheat mode.", "I am Xinyu's cat.", "I will help you."];
 
 function animate(timestamp) {
   if (!lastTime) lastTime = timestamp;
