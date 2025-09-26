@@ -13,9 +13,7 @@
 
     @font-face {
       font-family: 'Title';
-      /* 你自己起的名字 */
       src: url('Fonts/editundo.ttf') format('truetype');
-      /* 路径根据实际调整 */
       font-weight: normal;
       font-style: normal;
     }
@@ -100,6 +98,8 @@
       height: 100%;
       border: none;
       background: white;
+      opacity: 1;
+      transition: opacity 0.5s ease; /* 通用淡入淡出 */
     }
 
     .controls {
@@ -166,22 +166,41 @@
   <!-- 右侧大嵌入容器 -->
   <div class="right-container">
     <div class="controls">
-      <button class="control-btn" onclick="loadPage('terminal.html')">terminal</button>
-      <button class="control-btn" onclick="loadPage('pacman.html')">pacman</button>
-      <button class="control-btn" onclick="loadPage('test.html')">test</button>
-      <button class="control-btn" onclick="loadPage('about:blank')">clear</button>
+      <button class="control-btn" onclick="loadPageWithTransition('terminal.html')">terminal</button>
+      <button class="control-btn" onclick="loadPageWithTransition('pacman.html')">pacman</button>
+      <button class="control-btn" onclick="loadPageWithTransition('test.html')">test</button>
+      <button class="control-btn" onclick="loadPageWithTransition('about:blank')">clear</button>
     </div>
     <iframe class="embed-frame" id="embedFrame" src="terminal.html"></iframe>
   </div>
 
   <!-- 可拖动区域 -->
-  <div class="draggable-area">
+  <div class="draggable-area" id="draggableArea">
     <canvas id="catCanvas" width="200" height="200"></canvas>
   </div>
 
   <script>
     const embedFrame = document.getElementById("embedFrame");
-    function loadPage(url) { embedFrame.src = url; }
+
+    // 通用切换：淡出 -> 换 src -> 淡入
+    function loadPageWithTransition(url) {
+      embedFrame.style.opacity = 0;
+      setTimeout(() => {
+        embedFrame.src = url;
+      }, 500);
+    }
+
+    // iframe加载完成后淡入
+    embedFrame.addEventListener("load", () => {
+      embedFrame.style.opacity = 1;
+    });
+
+    // 监听来自 terminal.html 的消息
+    window.addEventListener("message", (event) => {
+      if (event.data === "load-pacman") {
+        loadPageWithTransition("pacman.html");
+      }
+    });
 
     // 拖动逻辑
     const dragArea = document.getElementById("draggableArea");
@@ -202,9 +221,7 @@
     document.addEventListener("mouseup", () => { isDragging = false; });
   </script>
 
-  <!-- 引入猫动画脚本 -->
+  <!-- 引入小猫动画 -->
   <script src="cat.js"></script>
-
 </body>
-
 </html>

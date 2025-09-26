@@ -21,7 +21,7 @@ let topText = "";
 let textTimeout = null;
 
 // 候选内容
-const messages = ["Commands unlocked", "Try Pacman"];
+const messages = ["Try different commands.", "Play Pacman.", "Hi, this is Coconut.", "There's a cheat mode."];
 
 function animate(timestamp) {
   if (!lastTime) lastTime = timestamp;
