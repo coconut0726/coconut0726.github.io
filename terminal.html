@@ -15,6 +15,7 @@
             align-items: center;
         }
 
+
         .crt {
             width: 90vw;
             height: 80vh;
@@ -29,6 +30,12 @@
             position: relative;
             text-shadow: 0 0 4px #B19CD9, 0 0 8px #FFB6C1;
         }
+
+        .crt:focus {
+            outline: none;
+            box-shadow: inset 0 0 30px #1e3a8a;
+        }
+
 
         .cursor {
             display: inline-block;
@@ -48,12 +55,14 @@
 </head>
 
 <body>
-    <div class="crt" id="terminal"></div>
+    <div class="crt" id="terminal" tabindex="0"></div>
+
+    <script src="terminal-data.js"></script>
 
     <script>
         const terminal = document.getElementById("terminal");
         let buffer = "";
-        let commandCount = 0; // 已输入命令计数
+        let commandCount = 0;
 
         // === 打字机效果 ===
         function typeLine(text, callback, speed = 40) {
@@ -62,7 +71,7 @@
             terminal.appendChild(line);
 
             function typing() {
-                line.innerHTML += text[i] === "\n" ? "<br>" : text[i]; // 支持 \n 换行
+                line.innerHTML += text[i] === "\n" ? "<br>" : text[i];
                 i++;
                 terminal.scrollTop = terminal.scrollHeight;
                 if (i < text.length) {
@@ -82,23 +91,8 @@
             const prompt = document.createElement("div");
             prompt.innerHTML = `C:\\> <span id="input"></span><span class="cursor"></span>`;
             terminal.appendChild(prompt);
-
             terminal.scrollTop = terminal.scrollHeight;
-        }
-
-        // === 清屏逻辑 ===
-        function autoClearIfNeeded() {
-            if (commandCount >= 10) {
-                terminal.innerHTML = "";
-                newPrompt();
-                buffer = "";
-                commandCount = 0;
-
-                // 打字机效果提示
-                typeLine("[Screen cleared automatically after 10 commands]", () => {
-                    newPrompt();
-                }, 30);
-            }
+            terminal.focus();
         }
 
         // === 命令处理 ===
@@ -113,36 +107,105 @@
                 parent.innerHTML = `C:\\> ${cmd}`;
             }
 
-            let output = []; // 用数组存储输出
+            let output = [];
+            const data = getFileData(); // 从 localStorage 获取文件状态
 
             switch (cmd.toLowerCase()) {
                 case "help":
-                    output = ["Commands: help, whoami, pacman, clear"];
-                    break;
+                    const helpText = `
+┌──────────────────────────────────────────────┐
+│  personal-site:~ user$                      │
+└──────────────────────────────────────────────┘
+
+# Welcome to my terminal.
+# Available commands:
+#   ls <folder>   → list folders and files
+#   AboutMe       → learn a bit about me
+#   CheatMode     → unlock all files (if you must)
+#   Clear         → clean the screen
+
+$ ls
+Games   Others
+
+$ ls Games
+Pacman   Locked
+
+$ ls Others
+Unlocked   Locked
+
+# Some files are locked... for now.
+# You *could* use "CheatMode" to unlock everything,
+# but where’s the fun in that?
+# Play Pacman. Earn your secrets.
+`;
+                    typeLine(helpText, () => newPrompt(), 20);
+                    commandCount++;
+                    return;
+
                 case "whoami":
                     output = [
                         "I am a Master’s student at Duke University specializing in game development. My passion lies in games and in exploring innovative interactions as powerful metaphors for storytelling.",
                         "As a Game AI researcher, I study how games can serve as playgrounds for reinforcement learning agents to grow — and, in turn, how those agents can inform and enrich game design and development."
-                    ]
+                    ];
                     break;
-                case "pacman":
-                    output = ["Loading pacman.html..."];
-                    window.parent.postMessage("load-pacman", "*");
+
+                case "ls":
+                case "ls games":
+                case "ls others":
+                    const parts = cmd.split(" ");
+                    if (parts.length === 1) {
+                        output = ["Games   Others"];
+                    } else {
+                        const folderName = parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase();
+                        const content = listFolder(folderName);
+                        output = [content];
+                    }
                     break;
+
+                case "cheatmode":
+                    // 一键解锁所有
+                    const d = getFileData();
+                    Object.keys(d).forEach(folder => {
+                        Object.keys(d[folder]).forEach(file => d[folder][file] = true);
+                    });
+                    localStorage.setItem("terminalData", JSON.stringify(d));
+                    output = ["CheatMode activated. All files unlocked."];
+                    break;
+
                 case "clear":
                     terminal.innerHTML = "";
                     newPrompt();
                     buffer = "";
                     commandCount = 0;
                     return;
+
                 case "":
                     output = [""];
                     break;
+
                 default:
-                    output = [`'${cmd}' is not recognized.`];
+                    // 检查是否是游戏名
+                    const inputName = cmd.toLowerCase();
+                    const games = data.Games;
+
+                    const matchedGame = Object.keys(games).find(
+                        g => g.toLowerCase() === inputName
+                    );
+
+                    if (matchedGame) {
+                        if (games[matchedGame]) {
+                            output = [`Loading ${matchedGame}.html...`];
+                            // 跳转页面
+                            window.parent.postMessage(`load-${matchedGame.toLowerCase()}`, "*");
+                        } else {
+                            output = [`${matchedGame} is still locked. Try unlocking it first.`];
+                        }
+                    } else {
+                        output = [`'${cmd}' is not recognized.`];
+                    }
             }
 
-            // 渲染数组里的每一行
+            // 输出文本
             output.forEach(text => {
                 const line = document.createElement("div");
                 line.textContent = text;
@@ -151,11 +214,9 @@
 
             commandCount++;
             autoClearIfNeeded();
-
             newPrompt();
             buffer = "";
         }
-
 
         // === 键盘输入 ===
         document.addEventListener("keydown", e => {
@@ -187,13 +248,14 @@
             }, 300);
         }
 
-        // === DOS 欢迎信息 ===
+        // === 启动画面 ===
         function startTerminal() {
             typeLine("XINYU_PORTFOLIO v4.0", () => {
                 typeLine("\n> Hi. I'm Xinyu, a game developer and Game AI researcher.", () => {
                     typeLine("> Welcome to my cyberspace.", () => {
                         typeLine("\nC:\\> Type 'help' for commands.", () => {
                             newPrompt();
+                            terminal.focus();
                         });
                     });
                 });
